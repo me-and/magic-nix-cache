@@ -24,7 +24,7 @@ jobs:
             runner: ubuntu-22.04-arm
           - nix-system: x86_64-darwin
             system: X64-macOS
-            runner: macos-14
+            runner: macos-13
           - nix-system: aarch64-darwin
             system: ARM64-macOS
             runner: macos-latest
