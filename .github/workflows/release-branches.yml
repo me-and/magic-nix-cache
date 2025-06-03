@@ -19,16 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # In order to request a JWT for AWS auth
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_S3_UPLOAD_ROLE }}
-          aws-region: us-east-2
-
       - name: Create the artifacts directory
         run: rm -rf ./artifacts && mkdir ./artifacts
 
@@ -59,9 +52,3 @@ jobs:
           path: cache-binary-ARM64-Linux
       - name: Persist the cache binary
         run: cp ./cache-binary-ARM64-Linux/magic-nix-cache.closure.xz ./artifacts/magic-nix-cache-ARM64-Linux
-
-      - name: Publish Release (Branch)
-        env:
-          AWS_BUCKET: ${{ secrets.AWS_S3_UPLOAD_BUCKET }}
-        run: |
-          .github/workflows/upload_s3.sh branch "${{ github.ref_name }}" "$GITHUB_SHA"
