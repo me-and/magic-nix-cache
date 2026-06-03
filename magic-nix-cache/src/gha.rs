@@ -17,6 +17,9 @@ pub struct GhaCache {
     /// The GitHub Actions Cache API.
     pub api: Arc<Api>,
 
+    /// Whether uploads should be skipped.
+    pub(crate) restore_only: bool,
+
     /// The future from the completion of the worker.
     worker_result: RwLock<Option<tokio::task::JoinHandle<Result<()>>>>,
 
@@ -33,6 +36,7 @@ impl GhaCache {
     pub fn new(
         credentials: Credentials,
         cache_version: Option<String>,
+        restore_only: bool,
         store: Arc<NixStore>,
         metrics: Arc<telemetry::TelemetryReport>,
         narinfo_negative_cache: Arc<RwLock<HashSet<String>>>,
@@ -54,23 +58,26 @@ impl GhaCache {
         let (channel_tx, channel_rx) = unbounded_channel();
 
         let api = Arc::new(api);
-
-        let api2 = api.clone();
-
-        let worker_result = tokio::task::spawn(async move {
-            worker(
-                &api2,
-                store,
-                channel_rx,
-                metrics,
-                narinfo_negative_cache.clone(),
-            )
-            .await
-        });
+        let worker_result = if restore_only {
+            None
+        } else {
+            let api2 = api.clone();
+            Some(tokio::task::spawn(async move {
+                worker(
+                    &api2,
+                    store,
+                    channel_rx,
+                    metrics,
+                    narinfo_negative_cache.clone(),
+                )
+                .await
+            }))
+        };
 
         Ok(GhaCache {
             api,
-            worker_result: RwLock::new(Some(worker_result)),
+            restore_only,
+            worker_result: RwLock::new(worker_result),
             channel_tx,
         })
     }
@@ -93,6 +100,11 @@ impl GhaCache {
         store: Arc<NixStore>,
         store_paths: Vec<StorePath>,
     ) -> Result<()> {
+        if self.restore_only {
+            tracing::debug!("Skipping GitHub Actions cache uploads in restore-only mode");
+            return Ok(());
+        }
+
         // FIXME: make sending the closure optional. We might want to
         // only send the paths that have been built by the user, under
         // the assumption that everything else is already in a binary

@@ -61,6 +61,8 @@ jobs:
 That's it.
 Everything built in your workflow will be cached.
 
+If you only want to restore from the GitHub Actions cache and never write new cache entries, pass `--restore-only` to the daemon. This keeps cache hits working while skipping all GHAC uploads.
+
 ## Usage Notes
 
 The GitHub Actions Cache has a rate limit on reads and writes.

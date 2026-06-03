@@ -82,7 +82,17 @@ async fn workflow_finish(
 
         // NOTE(cole-h): If we're substituting from an upstream cache, those paths won't have the
         // post-build-hook run on it, so we diff the store to ensure we cache everything we can.
-        tracing::info!("Diffing the store and uploading any new paths before we shut down");
+        if state
+            .gha_cache
+            .as_ref()
+            .is_some_and(|cache| cache.restore_only)
+        {
+            tracing::info!(
+                "Diffing the store before shutdown; restore-only mode skips GHA uploads"
+            );
+        } else {
+            tracing::info!("Diffing the store and uploading any new paths before we shut down");
+        }
         enqueue_paths(&state, new_paths).await?;
 
         reply

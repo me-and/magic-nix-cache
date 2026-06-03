@@ -91,6 +91,11 @@ async fn put_narinfo(
 
     let gha_cache = state.gha_cache.as_ref().ok_or(Error::GHADisabled)?;
 
+    if gha_cache.restore_only {
+        tracing::debug!("Skipping narinfo upload in restore-only mode");
+        return Ok(());
+    }
+
     let store_path_hash = components[0].to_string();
     let key = format!("{store_path_hash}.narinfo");
     let allocation = gha_cache.api.allocate_file_with_random_suffix(&key).await?;
@@ -138,6 +143,11 @@ async fn put_nar(
     body: axum::body::Body,
 ) -> Result<()> {
     let gha_cache = state.gha_cache.as_ref().ok_or(Error::GHADisabled)?;
+
+    if gha_cache.restore_only {
+        tracing::debug!("Skipping nar upload in restore-only mode");
+        return Ok(());
+    }
 
     let allocation = gha_cache
         .api

@@ -57,6 +57,23 @@ pub struct BuiltPathResponseEventV1 {
     pub outputs: Vec<PathBuf>,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn restore_only_flag_defaults_off() {
+        let args = Args::parse_from(["magic-nix-cache"]);
+        assert!(!args.restore_only);
+    }
+
+    #[test]
+    fn restore_only_flag_can_be_enabled() {
+        let args = Args::parse_from(["magic-nix-cache", "--restore-only"]);
+        assert!(args.restore_only);
+    }
+}
+
 type State = Arc<StateInner>;
 
 /// GitHub Actions-powered Nix binary cache
@@ -111,6 +128,10 @@ struct Args {
     /// Whether to use the GHA cache.
     #[arg(long)]
     use_gha_cache: Option<Option<CacheTrinary>>,
+
+    /// Restore from the GHA cache but never write new objects to it.
+    #[arg(long, default_value_t = false)]
+    restore_only: bool,
 
     /// Whether to use the FlakeHub binary cache.
     #[arg(long)]
@@ -428,6 +449,7 @@ async fn main_cli(args: Args, recorder: detsys_ids_client::Recorder) -> Result<(
         let gha_cache = gha::GhaCache::new(
             credentials,
             args.cache_version,
+            args.restore_only,
             store.clone(),
             metrics.clone(),
             narinfo_negative_cache.clone(),
@@ -439,6 +461,9 @@ async fn main_cli(args: Args, recorder: detsys_ids_client::Recorder) -> Result<(
             .with_context(|| "Writing to nix.conf")?;
 
         tracing::info!("Native GitHub Action cache is enabled.");
+        if args.restore_only {
+            tracing::info!("Native GitHub Action cache is running in restore-only mode.");
+        }
         Some(gha_cache)
     } else {
         if environment.is_github_actions() {
