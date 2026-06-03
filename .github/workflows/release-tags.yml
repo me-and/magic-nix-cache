@@ -26,13 +26,6 @@ jobs:
 
       - uses: actions/download-artifact@v4.1.8
         with:
-          name: magic-nix-cache-ARM64-macOS
-          path: cache-binary-ARM64-macOS
-      - name: Persist the cache binary
-        run: cp ./cache-binary-ARM64-macOS/magic-nix-cache.closure.xz ./artifacts/ARM64-macOS
-
-      - uses: actions/download-artifact@v4.1.8
-        with:
           name: magic-nix-cache-X64-Linux
           path: cache-binary-X64-Linux
       - name: Persist the cache binary
@@ -45,17 +38,8 @@ jobs:
       - name: Persist the cache binary
         run: cp ./cache-binary-ARM64-Linux/magic-nix-cache.closure.xz ./artifacts/ARM64-Linux
 
-      - uses: DeterminateSystems/push-artifact-ids@main
-        with:
-          s3_upload_role: ${{ secrets.AWS_S3_UPLOAD_ROLE }}
-          bucket: ${{ secrets.AWS_S3_UPLOAD_BUCKET }}
-          directory: ./artifacts
-          ids_project_name: magic-nix-cache
-          ids_binary_prefix: magic-nix-cache
-
       - name: Rename binaries for GH release
         run: |
-          mv ./artifacts/{,magic-nix-cache-closure-}ARM64-macOS
           mv ./artifacts/{,magic-nix-cache-closure-}X64-Linux
           mv ./artifacts/{,magic-nix-cache-closure-}ARM64-Linux
 
